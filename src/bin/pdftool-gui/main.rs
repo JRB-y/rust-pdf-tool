@@ -4,6 +4,7 @@
 use eframe::egui;
 
 mod app;
+mod fonts;
 
 fn main() -> eframe::Result {
     let options = eframe::NativeOptions {
@@ -14,5 +15,12 @@ fn main() -> eframe::Result {
         ..Default::default()
     };
 
-    eframe::run_native("pdftool", options, Box::new(|_cc| Ok(Box::<app::App>::default())))
+    eframe::run_native(
+        "pdftool",
+        options,
+        Box::new(|cc| {
+            cc.egui_ctx.set_fonts(fonts::definitions());
+            Ok(Box::<app::App>::default())
+        }),
+    )
 }

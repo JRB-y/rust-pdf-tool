@@ -18,15 +18,15 @@ cargo install --path .     # installs both
 | Ajouter des PDF… | Vider la liste | Métadonnées | Pages | Fusionner  |
 +---------------------+------------------------------------------------+
 | Fichiers            |  the action for the selected file              |
-|  ↑ ↓ ✕  cover.pdf   |                                                |
-|  ↑ ↓ ✕  body.pdf    |                                                |
+|  ↑ ↓ ✖  cover.pdf   |                                                |
+|  ↑ ↓ ✖  body.pdf    |                                                |
 +---------------------+------------------------------------------------+
 | [x] Remplacer le fichier d'origine  |  status of the last action      |
 +----------------------------------------------------------------------+
 ```
 
 - Drop PDFs onto the window, or add them with the button. The list order is the
-  merge order; `↑`/`↓` reorder it, `✕` removes an entry.
+  merge order; `↑`/`↓` reorder it, `✖` removes an entry.
 - **Métadonnées** shows the selected file's fields in text boxes. Edit them and
   save; emptying a box removes that field from the document.
 - **Pages** takes a selection such as `1-3,7` and can keep, delete or rotate it.

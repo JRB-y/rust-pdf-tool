@@ -7,6 +7,8 @@ use eframe::egui;
 use pdftool::util::{Result, write_edit};
 use pdftool::{merge, meta, pages};
 
+use crate::fonts::{ARROW, DOWN, REMOVE, UP};
+
 #[derive(PartialEq)]
 enum Tab {
     Metadata,
@@ -113,12 +115,12 @@ impl App {
                         move_up = Some(index);
                     }
                     if ui
-                        .add_enabled(index + 1 < self.files.len(), egui::Button::new("↓").small())
+                        .add_enabled(index + 1 < self.files.len(), egui::Button::new(DOWN).small())
                         .clicked()
                     {
                         move_up = Some(index + 1);
                     }
-                    if ui.add(egui::Button::new("✕").small()).clicked() {
+                    if ui.add(egui::Button::new(REMOVE).small()).clicked() {
                         remove = Some(index);
                     }
                     let name = file.file_name().unwrap_or(file.as_os_str()).to_string_lossy();
@@ -298,7 +300,9 @@ impl App {
 
     fn merge_tab(&mut self, ui: &mut egui::Ui) {
         ui.heading("Fusionner");
-        ui.label("Les pages sont ajoutées dans l'ordre de la liste de gauche ; réordonnez avec ↑ et ↓.");
+        ui.label(format!(
+            "Les pages sont ajoutées dans l'ordre de la liste de gauche ; réordonnez avec {UP} et {DOWN}."
+        ));
         ui.add_space(10.0);
 
         for (index, file) in self.files.iter().enumerate() {
@@ -348,7 +352,7 @@ impl App {
         match outcome {
             None => {} // the save dialog was cancelled
             Some(Ok(written)) => {
-                self.status = Status::Done(format!("{summary} → {}", written.display()));
+                self.status = Status::Done(format!("{summary} {ARROW} {}", written.display()));
                 if !self.files.contains(&written) {
                     self.add_files(vec![written]);
                 } else {
