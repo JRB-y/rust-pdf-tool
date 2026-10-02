@@ -6,7 +6,7 @@ use std::process::ExitCode;
 use clap::{Parser, Subcommand};
 
 use pdftool::util::{Result, write_edit};
-use pdftool::{merge, meta, pages};
+use pdftool::{merge, meta, pages, text};
 
 #[derive(Parser)]
 #[command(
@@ -76,6 +76,23 @@ enum Command {
         file: PathBuf,
         /// Pages to delete
         pages: String,
+        /// Write to this file instead of editing in place
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
+
+    /// Print the text of a PDF, page by page
+    Text { file: PathBuf },
+
+    /// Replace a piece of text, keeping its font and position
+    Replace {
+        file: PathBuf,
+        /// Text to look for
+        #[arg(long)]
+        from: String,
+        /// Text to put in its place; leave it out to delete the text
+        #[arg(long, default_value = "")]
+        to: String,
         /// Write to this file instead of editing in place
         #[arg(short, long)]
         output: Option<PathBuf>,
@@ -189,6 +206,35 @@ fn run(command: Command) -> Result<()> {
                 Ok(())
             })?;
             println!("removed {removed} page(s) -> {}", written.display());
+            Ok(())
+        }
+
+        Command::Text { file } => {
+            for (number, page) in text::pages(&file)? {
+                println!("--- page {number} ---");
+                println!("{}", page.trim_end());
+            }
+            Ok(())
+        }
+
+        Command::Replace {
+            file,
+            from,
+            to,
+            output,
+        } => {
+            let mut report = text::Report::default();
+            let written = write_edit(&file, output, |target| {
+                report = text::replace(&file, &from, &to, target)?;
+                Ok(())
+            })?;
+            let pages: Vec<String> = report.pages.iter().map(u32::to_string).collect();
+            println!(
+                "{} occurrence(s) replaced on page(s) {} -> {}",
+                report.replaced,
+                pages.join(", "),
+                written.display()
+            );
             Ok(())
         }
 

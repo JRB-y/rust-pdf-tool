@@ -4,5 +4,6 @@
 pub mod merge;
 pub mod meta;
 pub mod pages;
+pub mod text;
 pub mod tree;
 pub mod util;

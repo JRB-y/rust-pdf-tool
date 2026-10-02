@@ -5,13 +5,14 @@ use std::path::{Path, PathBuf};
 
 use eframe::egui;
 use pdftool::util::{Result, write_edit};
-use pdftool::{merge, meta, pages};
+use pdftool::{merge, meta, pages, text};
 
 use crate::fonts::{ARROW, DOWN, REMOVE, UP};
 
 #[derive(PartialEq)]
 enum Tab {
     Metadata,
+    Text,
     Merge,
     Pages,
 }
@@ -40,6 +41,10 @@ pub struct App {
     form: Form,
     page_spec: String,
     angle: i64,
+    search: String,
+    replacement: String,
+    /// The text of the selected file, read when the Texte tab needs it.
+    text_view: Option<(PathBuf, Vec<(u32, String)>)>,
     overwrite: bool,
     status: Status,
 }
@@ -53,6 +58,9 @@ impl Default for App {
             form: Form::default(),
             page_spec: String::new(),
             angle: 90,
+            search: String::new(),
+            replacement: String::new(),
+            text_view: None,
             overwrite: false,
             status: Status::Idle,
         }
@@ -89,6 +97,7 @@ impl App {
             }
             ui.separator();
             ui.selectable_value(&mut self.tab, Tab::Metadata, "Métadonnées");
+            ui.selectable_value(&mut self.tab, Tab::Text, "Texte");
             ui.selectable_value(&mut self.tab, Tab::Pages, "Pages");
             ui.selectable_value(&mut self.tab, Tab::Merge, "Fusionner");
         });
@@ -148,6 +157,7 @@ impl App {
         ui.add_space(6.0);
         match self.tab {
             Tab::Metadata => self.metadata_tab(ui),
+            Tab::Text => self.text_tab(ui),
             Tab::Pages => self.pages_tab(ui),
             Tab::Merge => self.merge_tab(ui),
         }
@@ -230,6 +240,97 @@ impl App {
                 ),
             );
         }
+    }
+
+    fn text_tab(&mut self, ui: &mut egui::Ui) {
+        let Some(file) = self.selected_file() else {
+            ui.label("Sélectionnez un fichier à gauche.");
+            return;
+        };
+
+        ui.heading(file.file_name().unwrap_or_default().to_string_lossy());
+        ui.label(
+            "Le texte remplacé garde sa police, sa taille et sa position. Un PDF ne remet pas le texte \
+             en page : un remplacement plus long que l'original déborde sur ce qui suit. Les caractères \
+             absents de la police du document sont refusés plutôt qu'écrits en blanc.",
+        );
+        ui.add_space(10.0);
+
+        ui.horizontal(|ui| {
+            ui.label("Rechercher :");
+            ui.add(egui::TextEdit::singleline(&mut self.search).desired_width(260.0));
+            ui.label("Remplacer par :");
+            ui.add(egui::TextEdit::singleline(&mut self.replacement).desired_width(260.0));
+        });
+        ui.add_space(10.0);
+
+        ui.horizontal(|ui| {
+            let asked = !self.search.trim().is_empty();
+            if ui
+                .add_enabled(asked, egui::Button::new("Remplacer partout"))
+                .clicked()
+            {
+                let (search, replacement) = (self.search.clone(), self.replacement.clone());
+                self.apply_replacement(&file, &search, &replacement);
+            }
+            if ui
+                .add_enabled(asked, egui::Button::new("Supprimer ce texte"))
+                .on_hover_text("Efface le texte recherché, le reste de la page ne bouge pas.")
+                .clicked()
+            {
+                let search = self.search.clone();
+                self.apply_replacement(&file, &search, "");
+            }
+        });
+
+        ui.add_space(14.0);
+        ui.separator();
+        ui.add_space(8.0);
+
+        // Reading the text parses every page, so do it once per file.
+        if self.text_view.as_ref().map(|(path, _)| path) != Some(&file) {
+            match text::pages(&file) {
+                Ok(pages) => self.text_view = Some((file.clone(), pages)),
+                Err(error) => {
+                    self.status = Status::Failed(error.to_string());
+                    self.text_view = Some((file.clone(), Vec::new()));
+                }
+            }
+        }
+
+        ui.label("Texte du document :");
+        egui::ScrollArea::vertical().show(ui, |ui| {
+            let Some((_, pages)) = &self.text_view else { return };
+            for (number, page) in pages {
+                ui.add_space(6.0);
+                ui.label(format!("— page {number} —"));
+                let mut body = page.trim_end().to_string();
+                ui.add(
+                    egui::TextEdit::multiline(&mut body)
+                        .desired_width(f32::INFINITY)
+                        .interactive(false),
+                );
+            }
+        });
+    }
+
+    /// Replace `search` and refresh the text shown.
+    fn apply_replacement(&mut self, file: &Path, search: &str, replacement: &str) {
+        let mut report = text::Report::default();
+        let outcome = self.run(file, "texte-remplace.pdf", |target| {
+            report = text::replace(file, search, replacement, target)?;
+            Ok(())
+        });
+        let pages: Vec<String> = report.pages.iter().map(u32::to_string).collect();
+        let what = match replacement.is_empty() {
+            true => "suppression",
+            false => "remplacement",
+        };
+        self.report(
+            outcome,
+            format!("{} {what}(s), page(s) {}", report.replaced, pages.join(", ")),
+        );
+        self.text_view = None;
     }
 
     fn pages_tab(&mut self, ui: &mut egui::Ui) {
