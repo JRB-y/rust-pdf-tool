@@ -2,6 +2,7 @@
 name = "pdftool"
 version = "0.1.0"
 edition = "2024"
+default-run = "pdftool-gui"
 
 [dependencies]
 clap = { version = "4.6.7", features = ["derive"] }
@@ -9,8 +10,6 @@ eframe = "0.33.3"
 lopdf = "0.45.0"
 rfd = "0.17.2"
 
-[dev-dependencies]
-lopdf = "0.45.0"
 
 [[bin]]
 name = "pdftool"

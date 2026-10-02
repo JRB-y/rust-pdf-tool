@@ -1,15 +1,42 @@
 # pdftool
 
-A small command line tool for everyday PDF work: read and change metadata, merge
-files, and keep, delete or rotate pages. Built on [lopdf](https://crates.io/crates/lopdf),
-so there is nothing to install besides Rust.
+A small tool for everyday PDF work: read and change metadata, merge files, and
+keep, delete or rotate pages. It comes as a window and as a command line, both
+on top of the same library, and is built on
+[lopdf](https://crates.io/crates/lopdf) — nothing to install besides Rust.
 
 ```
-cargo build --release      # binary at target/release/pdftool
-cargo install --path .     # or install it as `pdftool`
+cargo run                  # opens the window
+cargo build --release      # target/release/pdftool-gui and target/release/pdftool
+cargo install --path .     # installs both
 ```
 
-## Commands
+## The window (`pdftool-gui`)
+
+```
++----------------------------------------------------------------------+
+| Ajouter des PDF… | Vider la liste | Métadonnées | Pages | Fusionner  |
++---------------------+------------------------------------------------+
+| Fichiers            |  the action for the selected file              |
+|  ↑ ↓ ✕  cover.pdf   |                                                |
+|  ↑ ↓ ✕  body.pdf    |                                                |
++---------------------+------------------------------------------------+
+| [x] Remplacer le fichier d'origine  |  status of the last action      |
++----------------------------------------------------------------------+
+```
+
+- Drop PDFs onto the window, or add them with the button. The list order is the
+  merge order; `↑`/`↓` reorder it, `✕` removes an entry.
+- **Métadonnées** shows the selected file's fields in text boxes. Edit them and
+  save; emptying a box removes that field from the document.
+- **Pages** takes a selection such as `1-3,7` and can keep, delete or rotate it.
+- **Fusionner** joins every file in the list, in order.
+- The checkbox at the bottom decides where output goes: ticked, the original is
+  rewritten in place; unticked (the default), each action asks for a file name.
+
+The window's labels are French; messages coming from the engine are English.
+
+## The command line (`pdftool`)
 
 ```
 pdftool info     <file>                         show metadata and page count
@@ -64,6 +91,8 @@ pdftool rotate scan.pdf -90 --pages 3,5-6
 
 | File | Contents |
 | --- | --- |
+| `src/lib.rs` | the library both front ends use |
+| `src/bin/pdftool-gui/` | the window: `main.rs` opens it, `app.rs` is the interface |
 | `src/main.rs` | the command line interface and dispatch |
 | `src/meta.rs` | reading and writing the Info dictionary |
 | `src/merge.rs` | merging documents |
