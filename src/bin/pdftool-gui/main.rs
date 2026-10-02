@@ -1,6 +1,8 @@
 //! A small window around the pdftool library: drop PDFs in, edit their
 //! metadata, merge them, or keep, delete and rotate pages.
 
+use eframe::egui;
+
 mod app;
 
 fn main() -> eframe::Result {

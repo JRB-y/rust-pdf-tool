@@ -11,7 +11,8 @@ pub const FIELDS: [&str; 6] = ["title", "author", "subject", "keywords", "creato
 
 /// Read metadata and page count without loading the whole document.
 pub fn read(file: &Path) -> Result<PdfMetadata> {
-    Document::load_metadata(file).map_err(|error| format!("could not read {}: {error}", file.display()).into())
+    Document::load_metadata(file)
+        .map_err(|error| format!("could not read {}: {error}", file.display()).into())
 }
 
 /// Print what `read` found.
